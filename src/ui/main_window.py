@@ -16,7 +16,7 @@ class MainWindow(ctk.CTk):
         self.sort_ascending = True
 
         # Configuração da janela
-        self.title("■ FinanceTracker")
+        self.title("■ OrçaFácil")
         self.geometry("1200x650")
         self.resizable(True, True)
 
@@ -34,7 +34,7 @@ class MainWindow(ctk.CTk):
         main_frame.pack(fill='both', expand=True, padx=20, pady=20)
 
         # Título
-        self.title_label = ctk.CTkLabel(main_frame, text='FinanceTracker',
+        self.title_label = ctk.CTkLabel(main_frame, text='OrçaFácil',
                                         font=('Arial', 28, 'bold'))
         self.title_label.pack(pady=20)
 
