@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Gráficos - FinanceTracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Análise Gráfica</h4>
+            </div>
+            <div class="card-body">
+                <!-- Gráfico de Pizza -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <h5 class="mb-3">📊 Distribuição: Receitas vs Despesas</h5>
+                        <div class="chart-container">
+                            <canvas id="pieChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Barras -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <h5 class="mb-3">📈 Despesas por Categoria</h5>
+                        <div class="chart-container">
+                            <canvas id="barChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Linhas -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="mb-3">📉 Evolução Mensal</h5>
+                        <div class="chart-container">
+                            <canvas id="lineChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Cores para os gráficos
+const colors = {
+    receita: '#27ae60',
+    despesa: '#e74c3c',
+    categories: ['#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#34495e', '#d35400', '#c0392b', '#16a085', '#8e44ad']
+};
+
+// Carregar dados dos gráficos
+async function loadChartsData() {
+    try {
+        const response = await fetch('/api/charts/data');
+        const data = await response.json();
+        
+        createPieChart(data.pie);
+        createBarChart(data.bar);
+        createLineChart(data.line);
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados dos gráficos:', error);
+        mostrarNotificacao('Erro ao carregar gráficos: ' + error.message, 'danger');
+    }
+}
+
+// Gráfico de Pizza - Receitas vs Despesas
+function createPieChart(pieData) {
+    const ctx = document.getElementById('pieChart').getContext('2d');
+
+    const receita = pieData.find(item => item.type === 'Receita')?.total || 0;
+    const despesa = pieData.find(item => item.type === 'Despesa')?.total || 0;
+
+    if (receita === 0 && despesa === 0) {
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('Não há dados para exibir', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Receitas', 'Despesas'],
+            datasets: [{
+                data: [receita, despesa],
+                backgroundColor: [colors.receita, colors.despesa],
+                borderWidth: 2,
+                borderColor: '#1a1a1a'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: 'white', font: { size: 14 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = receita + despesa;
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `R$ ${value.toFixed(2)} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Gráfico de Barras - Despesas por Categoria
+function createBarChart(barData) {
+    const ctx = document.getElementById('barChart').getContext('2d');
+
+    if (barData.length === 0) {
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('Não há despesas para exibir', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+
+    const categories = barData.map(item => item.category);
+    const totals = barData.map(item => item.total);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: categories,
+            datasets: [{
+                label: 'Valor (R$)',
+                data: totals,
+                backgroundColor: categories.map((_, index) => colors.categories[index % colors.categories.length]),
+                borderColor: '#1a1a1a',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `R$ ${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'white',
+                        callback: function(value) {
+                            return 'R$ ' + value.toFixed(2);
+                        }
+                    },
+                    grid: { color: '#444' }
+                },
+                x: {
+                    ticks: { color: 'white' },
+                    grid: { color: '#444' }
+                }
+            }
+        }
+    });
+}
+
+// Gráfico de Linhas - Evolução Mensal
+function createLineChart(lineData) {
+    const ctx = document.getElementById('lineChart').getContext('2d');
+
+    if (lineData.length === 0) {
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('Não há dados suficientes para evolução mensal', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+
+    const months = lineData.map(item => {
+        const [year, month] = item.month.split('-');
+        return `${month}/${year}`;
+    });
+    const revenues = lineData.map(item => item.revenue || 0);
+    const expenses = lineData.map(item => item.expense || 0);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Receitas',
+                    data: revenues,
+                    borderColor: colors.receita,
+                    backgroundColor: colors.receita + '20',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Despesas',
+                    data: expenses,
+                    borderColor: colors.despesa,
+                    backgroundColor: colors.despesa + '20',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: { color: 'white', font: { size: 14 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: R$ ${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'white',
+                        callback: function(value) {
+                            return 'R$ ' + value.toFixed(2);
+                        }
+                    },
+                    grid: { color: '#444' }
+                },
+                x: {
+                    ticks: { color: 'white' },
+                    grid: { color: '#444' }
+                }
+            }
+        }
+    });
+}
+
+// Inicializar gráficos quando a página carregar
+document.addEventListener('DOMContentLoaded', loadChartsData);
+</script>
+{% endblock %}

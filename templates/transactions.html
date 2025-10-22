@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Transações - OrçaFácil{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">💰 OrçaFácil - Transações</h1>
+
+    <!-- Formulário Nova Transação -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Nova Transação</h4>
+                </div>
+                <div class="card-body">
+                    <form id="transaction-form">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Tipo</label>
+                                <select class="form-select" name="type" id="type-select" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Receita">📈 Receita</option>
+                                    <option value="Despesa">📉 Despesa</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Categoria</label>
+                                <select class="form-select" name="category" id="category-select" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Salário">💼 Salário</option>
+                                    <option value="Freelance">👨‍💻 Freelance</option>
+                                    <option value="Investimentos">📊 Investimentos</option>
+                                    <option value="Outros Ganhos">🎁 Outros Ganhos</option>
+                                    <option value="Alimentação">🍕 Alimentação</option>
+                                    <option value="Moradia">🏠 Moradia</option>
+                                    <option value="Transporte">🚗 Transporte</option>
+                                    <option value="Lazer">🎮 Lazer</option>
+                                    <option value="Saúde">🏥 Saúde</option>
+                                    <option value="Outros Gastos">📦 Outros Gastos</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Valor (R$)</label>
+                                <input type="number" class="form-control" name="amount"
+                                       step="0.01" min="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Descrição</label>
+                                <input type="text" class="form-control" name="description"
+                                       placeholder="Descrição da transação">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-check me-1"></i>Adicionar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Transações -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-list me-2"></i>Todas as Transações</h4>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="exportData('csv')">
+                            <i class="fas fa-download me-1"></i>CSV
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="exportData('json')">
+                            <i class="fas fa-download me-1"></i>JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Categoria</th>
+                                    <th>Valor</th>
+                                    <th>Descrição</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Carregando transações...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edição -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Transação</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-form">
+                    <input type="hidden" name="id" id="edit-id">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="type" id="edit-type" required>
+                            <option value="">Selecione...</option>
+                            <option value="Receita">Receita</option>
+                            <option value="Despesa">Despesa</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Categoria</label>
+                        <select class="form-select" name="category" id="edit-category" required>
+                            <option value="">Selecione...</option>
+                            <option value="Salário">Salário</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Investimentos">Investimentos</option>
+                            <option value="Outros Ganhos">Outros Ganhos</option>
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Moradia">Moradia</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Outros Gastos">Outros Gastos</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" class="form-control" name="amount" id="edit-amount"
+                               step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <input type="text" class="form-control" name="description" id="edit-description">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Configurar formulário de transações
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionForm = document.getElementById('transaction-form');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const transacao = {
+                tipo: formData.get('type'),
+                categoria: formData.get('category'),
+                valor: parseFloat(formData.get('amount')),
+                descricao: formData.get('description')
+            };
+
+            await adicionarTransacao(transacao, this);
+        });
+    }
+
+    // Carregar transações ao abrir a página
+    carregarTransacoesPagina();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}OrçaFácil - Controle Financeiro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">💰 OrçaFácil </h1>
+
+    <!-- Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5>📈 Receitas</h5>
+                    <h3 id="receitas">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5>📉 Despesas</h5>
+                    <h3 id="despesas">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5>⚖️ Saldo</h5>
+                    <h3 id="saldo">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transações -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Últimas Transações</h5>
+        </div>
+        <div class="card-body">
+            <div id="transacoes">Carregando...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// JavaScript específico para a página inicial
+async function carregarDadosInicio() {
+    try {
+        console.log('📊 Carregando dados da página inicial...');
+        const response = await fetch('/api/transactions');
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const transacoes = await response.json();
+        console.log('✅ Dados recebidos:', transacoes);
+
+        // Atualizar resumo
+        const receitas = transacoes.filter(t => t.tipo === 'Receita').reduce((sum, t) => sum + t.valor, 0);
+        const despesas = transacoes.filter(t => t.tipo === 'Despesa').reduce((sum, t) => sum + t.valor, 0);
+        const saldo = receitas - despesas;
+
+        document.getElementById('receitas').textContent = `R$ ${receitas.toFixed(2)}`;
+        document.getElementById('despesas').textContent = `R$ ${despesas.toFixed(2)}`;
+        document.getElementById('saldo').textContent = `R$ ${saldo.toFixed(2)}`;
+
+        // Exibir últimas transações
+        const container = document.getElementById('transacoes');
+        if (transacoes.length === 0) {
+            container.innerHTML = '<p class="text-muted">Nenhuma transação cadastrada</p>';
+            return;
+        }
+
+        const ultimas = transacoes.slice(0, 5);
+        const html = ultimas.map(transacao => `
+            <div class="transacao-item border-bottom p-2 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${transacao.descricao || transacao.categoria}</strong>
+                    <span class="badge ${transacao.tipo === 'Receita' ? 'bg-success' : 'bg-danger'} ms-2">
+                        ${transacao.tipo}
+                    </span>
+                </div>
+                <div class="text-${transacao.tipo === 'Receita' ? 'success' : 'danger'}">
+                    R$ ${transacao.valor.toFixed(2)}
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados:', error);
+        document.getElementById('transacoes').innerHTML = '<p class="text-danger">Erro ao carregar transações</p>';
+    }
+}
+
+// Carregar dados quando a página carregar
+document.addEventListener('DOMContentLoaded', carregarDadosInicio);
+</script>
+{% endblock %}

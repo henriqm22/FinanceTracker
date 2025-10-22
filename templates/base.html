@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OrçaFácil{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #1a1a1a; color: white; padding: 20px; }
+        .card { background: #2d2d2d; border: 1px solid #444; }
+        .table-dark { background: #2d2d2d; }
+        .navbar-dark { background: #2d2d2d !important; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                💰 OrçaFácil - Início
+            </a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="{{ url_for('transactions') }}">Transações</a>
+                <a class="nav-link" href="{{ url_for('charts') }}">Gráficos</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts específicos de cada página -->
+    {% block scripts %}{% endblock %}
+
+    <!-- Script global -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
