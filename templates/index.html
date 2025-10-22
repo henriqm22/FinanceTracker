@@ -52,7 +52,7 @@
 async function carregarDadosInicio() {
     try {
         console.log('📊 Carregando dados da página inicial...');
-        const response = await fetch('/api/transactions');
+        const response = await fetch('/api/transacoes');
 
         if (!response.ok) {
             throw new Error(`Erro HTTP: ${response.status}`);

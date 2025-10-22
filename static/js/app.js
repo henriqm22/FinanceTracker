@@ -1,260 +1,241 @@
-// static/js/app.js - Funções globais COMPLETAS
+// static/js/app.js
+console.log("✅ app.js carregado!");
 
-console.log('✅ app.js carregado!');
+// ---------- Utilidades ----------
+function qsAny(selectors, root = document) {
+  for (const sel of selectors) {
+    const el = root.querySelector(sel);
+    if (el) return el;
+  }
+  return null;
+}
 
-// ===== FUNÇÕES GLOBAIS =====
+function logWarnMissing(name, selectors) {
+  console.warn(`⚠️ Elemento "${name}" não encontrado. Procure por um destes seletores no HTML: ${selectors.join(", ")}`);
+}
 
-// Função para mostrar notificações
-function mostrarNotificacao(mensagem, tipo = 'success') {
-    // Criar elemento de alerta
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+function mostrarNotificacao(mensagem, tipo = "success") {
+  const alerta = document.createElement("div");
+  alerta.className = `alert alert-${tipo === "success" ? "success" : "danger"} alert-dismissible fade show`;
+  alerta.role = "alert";
+  alerta.innerHTML = `
+    ${mensagem}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  (document.querySelector(".container") || document.body).prepend(alerta);
+  setTimeout(() => alerta.remove(), 3000);
+}
 
-    // Ícones para cada tipo
-    const icones = {
-        'success': '✅',
-        'danger': '❌',
-        'warning': '⚠️',
-        'info': 'ℹ️'
-    };
+// ---------- Estado ----------
+const CATEGORIAS = {
+  Receita: [
+    { nome: "Salário", icone: "💼" },
+    { nome: "Freelance", icone: "🧑‍💻" },
+    { nome: "Investimentos", icone: "📈" },
+    { nome: "Outros Ganhos", icone: "💰" },
+  ],
+  Despesa: [
+    { nome: "Alimentação", icone: "🍔" },
+    { nome: "Moradia", icone: "🏠" },
+    { nome: "Transporte", icone: "🚗" },
+    { nome: "Lazer", icone: "🎮" },
+    { nome: "Saúde", icone: "💊" },
+    { nome: "Outros Gastos", icone: "💸" },
+  ],
+};
 
-    alertDiv.innerHTML = `
-        ${icones[tipo] || ''} ${mensagem}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+// ---------- DOM refs (com fallback de seletores) ----------
+function getRefs() {
+  const form = qsAny(["#form-transacao", "form#formTransacao", "form[data-form='transacao']"]);
+  const tipo = qsAny(["#tipo", "#select-tipo", "[name='tipo']"]);
+  const categoria = qsAny(["#categoria", "#select-categoria", "[name='categoria']"]);
+  const valor = qsAny(["#valor", "input[name='valor']"]);
+  const descricao = qsAny(["#descricao", "input[name='descricao']"]);
+  const tabela = qsAny(["#tabela-transacoes", "#tabelaTransacoes", "table[data-table='transacoes']"]);
+  const tbody = tabela ? tabela.querySelector("tbody") : null;
+
+  return { form, tipo, categoria, valor, descricao, tabela, tbody };
+}
+
+// ---------- Categorias (popular/filtro) ----------
+function popularCategoriasPorTipo(selectTipo, selectCategoria) {
+  if (!selectTipo || !selectCategoria) return;
+
+  const tipoVal = selectTipo.value;
+  const lista = CATEGORIAS[tipoVal] || [];
+  selectCategoria.innerHTML = '<option selected>Selecione...</option>';
+
+  lista.forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = cat.nome;
+    opt.textContent = `${cat.icone} ${cat.nome}`;
+    selectCategoria.appendChild(opt);
+  });
+
+  console.log(`🔎 Tipo selecionado: ${tipoVal} → categorias:`, lista.map((c) => c.nome));
+}
+
+function configurarFiltroCategorias(refs) {
+  const { tipo, categoria } = refs;
+
+  if (!tipo) logWarnMissing("tipo", ["#tipo", "#select-tipo", "[name='tipo']"]);
+  if (!categoria) logWarnMissing("categoria", ["#categoria", "#select-categoria", "[name='categoria']"]);
+  if (!tipo || !categoria) return;
+
+  // Popular na carga inicial (caso já venha "Receita" ou "Despesa" selecionado)
+  popularCategoriasPorTipo(tipo, categoria);
+
+  // E reagir às mudanças
+  tipo.addEventListener("change", () => popularCategoriasPorTipo(tipo, categoria));
+}
+
+// ---------- Transações (LocalStorage) ----------
+function lerTransacoes() {
+  try {
+    return JSON.parse(localStorage.getItem("transacoes")) || [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarTransacoes(arr) {
+  localStorage.setItem("transacoes", JSON.stringify(arr));
+}
+
+function renderizarTransacoes(refs) {
+  const { tabela, tbody } = refs;
+  console.log("Carregando transações...");
+
+  if (!tabela) {
+    logWarnMissing("tabela de transações", ["#tabela-transacoes", "#tabelaTransacoes", "table[data-table='transacoes']"]);
+    return;
+  }
+  if (!tbody) {
+    console.warn("⚠️ A tabela de transações existe, mas não há <tbody> dentro dela.");
+    return;
+  }
+
+  tbody.innerHTML = "";
+  const transacoes = lerTransacoes();
+  console.log("📊 Transações carregadas:", transacoes);
+
+  if (transacoes.length === 0) {
+    const linha = document.createElement("tr");
+    linha.innerHTML = `<td colspan="7" class="text-center text-muted">Nenhuma transação cadastrada</td>`;
+    tbody.appendChild(linha);
+    return;
+  }
+
+  transacoes.forEach((t, i) => {
+    const linha = document.createElement("tr");
+    linha.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${t.data}</td>
+      <td>${t.tipo}</td>
+      <td>${t.categoria}</td>
+      <td>R$ ${Number(t.valor).toFixed(2)}</td>
+      <td>${t.descricao}</td>
+      <td><button class="btn btn-danger btn-sm" data-index="${i}">Excluir</button></td>
     `;
+    tbody.appendChild(linha);
+  });
 
-    document.body.appendChild(alertDiv);
-
-    // Auto-remover após 5 segundos
-    setTimeout(() => {
-        if (alertDiv.parentElement) {
-            alertDiv.remove();
-        }
-    }, 5000);
+  // Delegação para excluir
+  tbody.querySelectorAll("button.btn-danger").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const idx = Number(e.currentTarget.getAttribute("data-index"));
+      excluirTransacao(idx, refs);
+    });
+  });
 }
 
-// Função para validar dados da transação
-function validarTransacao(dados) {
-    if (!dados.tipo) {
-        throw new Error('Selecione o tipo da transação');
-    }
-    if (!dados.categoria) {
-        throw new Error('Selecione uma categoria');
-    }
-    if (!dados.valor || dados.valor <= 0) {
-        throw new Error('O valor deve ser maior que zero');
-    }
-    return true;
+function adicionarTransacao(refs) {
+  const { tipo, categoria, valor, descricao, form } = refs;
+
+  if (!tipo || !categoria || !valor || !descricao) {
+    mostrarNotificacao("Campos do formulário não encontrados. Verifique os IDs/nomes.", "error");
+    return;
+  }
+
+  const tipoVal = (tipo.value || "").trim();
+  const catVal = (categoria.value || "").trim();
+  const valorNum = parseFloat(valor.value);
+  const descVal = (descricao.value || "").trim();
+
+  if (!tipoVal || tipoVal === "Selecione...") {
+    mostrarNotificacao("Selecione o tipo da transação!", "error");
+    return;
+  }
+  if (!catVal || catVal === "Selecione...") {
+    mostrarNotificacao("Selecione a categoria!", "error");
+    return;
+  }
+  if (isNaN(valorNum) || valorNum <= 0) {
+    mostrarNotificacao("Informe um valor válido!", "error");
+    return;
+  }
+  if (!descVal) {
+    mostrarNotificacao("Informe uma descrição!", "error");
+    return;
+  }
+
+  const nova = {
+    tipo: tipoVal,
+    categoria: catVal,
+    valor: valorNum,
+    descricao: descVal,
+    data: new Date().toLocaleString(),
+  };
+
+  const transacoes = lerTransacoes();
+  transacoes.push(nova);
+  salvarTransacoes(transacoes);
+
+  mostrarNotificacao("Transação adicionada com sucesso!");
+  if (form) form.reset();
+
+  // Após reset, re-popular categorias conforme tipo atual (se o select tipo tiver um valor default)
+  popularCategoriasPorTipo(tipo, categoria);
+
+  renderizarTransacoes(refs);
 }
 
-// Função para formatar data
-function formatarData(dataString) {
-    try {
-        const data = new Date(dataString);
-        return data.toLocaleString('pt-BR');
-    } catch (error) {
-        return dataString;
-    }
+function excluirTransacao(index, refs) {
+  const transacoes = lerTransacoes();
+  transacoes.splice(index, 1);
+  salvarTransacoes(transacoes);
+  mostrarNotificacao("Transação excluída!");
+  renderizarTransacoes(refs);
 }
 
-// ===== FUNÇÕES PARA TRANSAÇÕES =====
+// ---------- Inicialização ----------
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 DOM carregado.");
+  const refs = getRefs();
 
-let todasTransacoes = [];
+  // Configurar filtro de categorias
+  configurarFiltroCategorias(refs);
 
-// Carregar transações para a página de transações
-async function carregarTransacoesPagina() {
-    try {
-        console.log('📡 Carregando transações...');
-        const response = await fetch('/api/transactions');
+  // Bind do formulário
+  if (!refs.form) {
+    logWarnMissing("formulário de transação", ["#form-transacao", "form#formTransacao", "form[data-form='transacao']"]);
+  } else {
+    refs.form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      adicionarTransacao(refs);
+    });
+  }
 
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
+  // Renderizar transações salvas
+  renderizarTransacoes(refs);
 
-        todasTransacoes = await response.json();
-        console.log('✅ Transações carregadas:', todasTransacoes);
-        atualizarTabelaTransacoes();
-
-    } catch (error) {
-        console.error('❌ Erro ao carregar transações:', error);
-        mostrarNotificacao('Erro ao carregar transações: ' + error.message, 'danger');
-    }
-}
-
-// Atualizar tabela de transações
-function atualizarTabelaTransacoes() {
-    const tbody = document.getElementById('transactions-table');
-    if (!tbody) return;
-
-    if (todasTransacoes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nenhuma transação cadastrada</td></tr>';
-        return;
-    }
-
-    const html = todasTransacoes.map(transacao => `
-        <tr>
-            <td>${transacao.id}</td>
-            <td>${formatarData(transacao.data)}</td>
-            <td>
-                <span class="badge ${transacao.tipo === 'Receita' ? 'bg-success' : 'bg-danger'}">
-                    ${transacao.tipo}
-                </span>
-            </td>
-            <td>${transacao.categoria}</td>
-            <td class="${transacao.tipo === 'Receita' ? 'text-success' : 'text-danger'}">
-                R$ ${transacao.valor.toFixed(2)}
-            </td>
-            <td>${transacao.descricao || '-'}</td>
-            <td>
-                <button class="btn btn-sm btn-warning me-1" onclick="editarTransacao(${transacao.id})">
-                    ✏️ Editar
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="excluirTransacao(${transacao.id})">
-                    🗑️ Excluir
-                </button>
-            </td>
-        </tr>
-    `).join('');
-
-    tbody.innerHTML = html;
-}
-
-// Editar transação
-function editarTransacao(id) {
-    const transacao = todasTransacoes.find(t => t.id === id);
-    if (!transacao) {
-        mostrarNotificacao('Transação não encontrada', 'danger');
-        return;
-    }
-
-    document.getElementById('edit-id').value = transacao.id;
-    document.getElementById('edit-type').value = transacao.tipo;
-    document.getElementById('edit-category').value = transacao.categoria;
-    document.getElementById('edit-amount').value = transacao.valor;
-    document.getElementById('edit-description').value = transacao.descricao || '';
-
-    // Abrir modal
-    const modal = new bootstrap.Modal(document.getElementById('editModal'));
-    modal.show();
-}
-
-// Salvar edição
-async function saveEdit() {
-    const id = document.getElementById('edit-id').value;
-    const transacao = {
-        tipo: document.getElementById('edit-type').value,
-        categoria: document.getElementById('edit-category').value,
-        valor: parseFloat(document.getElementById('edit-amount').value),
-        descricao: document.getElementById('edit-description').value
-    };
-
-    try {
-        console.log('📤 Salvando edição:', transacao);
-        validarTransacao(transacao);
-
-        const response = await fetch(`/api/transactions/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(transacao)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro do servidor: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Transação atualizada:', result);
-
-        // Fechar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-        modal.hide();
-
-        await carregarTransacoesPagina();
-        mostrarNotificacao('Transação atualizada com sucesso!');
-
-    } catch (error) {
-        console.error('❌ Erro ao atualizar transação:', error);
-        mostrarNotificacao('Erro: ' + error.message, 'danger');
-    }
-}
-
-// Excluir transação
-async function excluirTransacao(id) {
-    if (!confirm('Tem certeza que deseja excluir esta transação?')) {
-        return;
-    }
-
-    try {
-        console.log('🗑️ Excluindo transação:', id);
-        const response = await fetch(`/api/transactions/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro do servidor: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Transação excluída:', result);
-
-        await carregarTransacoesPagina();
-        mostrarNotificacao('Transação excluída com sucesso!');
-
-    } catch (error) {
-        console.error('❌ Erro ao excluir transação:', error);
-        mostrarNotificacao('Erro: ' + error.message, 'danger');
-    }
-}
-
-// Exportar dados
-async function exportData(format) {
-    try {
-        console.log(`📤 Exportando dados como ${format}...`);
-        const response = await fetch(`/api/export/${format}`);
-
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-
-        if (format === 'json') {
-            const data = await response.json();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'transacoes.json';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        } else if (format === 'csv') {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'transacoes.csv';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-
-        mostrarNotificacao(`Dados exportados como ${format.toUpperCase()}!`);
-
-    } catch (error) {
-        console.error('❌ Erro ao exportar:', error);
-        mostrarNotificacao('Erro ao exportar dados: ' + error.message, 'danger');
-    }
-}
-
-// ===== INICIALIZAÇÃO =====
-
-// Disponibilizar funções globalmente
-window.mostrarNotificacao = mostrarNotificacao;
-window.validarTransacao = validarTransacao;
-window.carregarTransacoesPagina = carregarTransacoesPagina;
-window.editarTransacao = editarTransacao;
-window.excluirTransacao = excluirTransacao;
-window.saveEdit = saveEdit;
-window.exportData = exportData;
+  // Dica de IDs encontrados (para diagnosticar rapidamente)
+  console.table({
+    form: !!refs.form,
+    tipo: !!refs.tipo,
+    categoria: !!refs.categoria,
+    valor: !!refs.valor,
+    descricao: !!refs.descricao,
+    tabela: !!refs.tabela,
+  });
+});

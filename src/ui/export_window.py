@@ -329,7 +329,7 @@ class ExportWindow(ctk.CTkToplevel):
                 # Cabeçalho do relatório
                 file.write("╔" + "═" * 58 + "╗\n")
                 file.write("║                RELATÓRIO FINANCEIRO                ║\n")
-                file.write("║                 FinanceTracker                    ║\n")
+                file.write("║                 OrçaFácil                    ║\n")
                 file.write("╚" + "═" * 58 + "╝\n\n")
 
                 # Informações da exportação
@@ -388,7 +388,7 @@ class ExportWindow(ctk.CTkToplevel):
 
                 # Rodapé
                 file.write("\n" + "─" * 60 + "\n")
-                file.write("Relatório gerado automaticamente pelo FinanceTracker\n")
+                file.write("Relatório gerado automaticamente pelo OrçaFácil\n")
                 file.write("💙 Controle suas finanças com facilidade!\n")
                 file.write("─" * 60 + "\n")
 

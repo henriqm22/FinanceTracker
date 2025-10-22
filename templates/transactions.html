@@ -14,11 +14,11 @@
                     <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Nova Transação</h4>
                 </div>
                 <div class="card-body">
-                    <form id="transaction-form">
+                    <form id="form-transacao">
                         <div class="row g-3">
                             <div class="col-md-2">
                                 <label class="form-label">Tipo</label>
-                                <select class="form-select" name="type" id="type-select" required>
+                                <select class="form-select" id="tipo" required>
                                     <option value="">Selecione...</option>
                                     <option value="Receita">📈 Receita</option>
                                     <option value="Despesa">📉 Despesa</option>
@@ -26,29 +26,17 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Categoria</label>
-                                <select class="form-select" name="category" id="category-select" required>
+                                <select class="form-select" id="categoria" required>
                                     <option value="">Selecione...</option>
-                                    <option value="Salário">💼 Salário</option>
-                                    <option value="Freelance">👨‍💻 Freelance</option>
-                                    <option value="Investimentos">📊 Investimentos</option>
-                                    <option value="Outros Ganhos">🎁 Outros Ganhos</option>
-                                    <option value="Alimentação">🍕 Alimentação</option>
-                                    <option value="Moradia">🏠 Moradia</option>
-                                    <option value="Transporte">🚗 Transporte</option>
-                                    <option value="Lazer">🎮 Lazer</option>
-                                    <option value="Saúde">🏥 Saúde</option>
-                                    <option value="Outros Gastos">📦 Outros Gastos</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Valor (R$)</label>
-                                <input type="number" class="form-control" name="amount"
-                                       step="0.01" min="0.01" placeholder="0.00" required>
+                                <input type="number" class="form-control" id="valor" step="0.01" min="0.01" placeholder="0.00" required>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Descrição</label>
-                                <input type="text" class="form-control" name="description"
-                                       placeholder="Descrição da transação">
+                                <input type="text" class="form-control" id="descricao" placeholder="Descrição da transação" required>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success w-100">
@@ -79,7 +67,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-dark table-striped table-hover">
+                        <table id="tabela-transacoes" class="table table-dark table-striped table-hover">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -91,7 +79,7 @@
                                     <th>Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="transactions-table">
+                            <tbody>
                                 <tr>
                                     <td colspan="7" class="text-center text-muted">
                                         <i class="fas fa-spinner fa-spin me-2"></i>Carregando transações...
@@ -106,7 +94,7 @@
     </div>
 </div>
 
-<!-- Modal de Edição -->
+<!-- Modal de Edição (futuro uso) -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
@@ -116,10 +104,10 @@
             </div>
             <div class="modal-body">
                 <form id="edit-form">
-                    <input type="hidden" name="id" id="edit-id">
+                    <input type="hidden" id="edit-id">
                     <div class="mb-3">
                         <label class="form-label">Tipo</label>
-                        <select class="form-select" name="type" id="edit-type" required>
+                        <select class="form-select" id="edit-tipo">
                             <option value="">Selecione...</option>
                             <option value="Receita">Receita</option>
                             <option value="Despesa">Despesa</option>
@@ -127,34 +115,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Categoria</label>
-                        <select class="form-select" name="category" id="edit-category" required>
+                        <select class="form-select" id="edit-categoria">
                             <option value="">Selecione...</option>
-                            <option value="Salário">Salário</option>
-                            <option value="Freelance">Freelance</option>
-                            <option value="Investimentos">Investimentos</option>
-                            <option value="Outros Ganhos">Outros Ganhos</option>
-                            <option value="Alimentação">Alimentação</option>
-                            <option value="Moradia">Moradia</option>
-                            <option value="Transporte">Transporte</option>
-                            <option value="Lazer">Lazer</option>
-                            <option value="Saúde">Saúde</option>
-                            <option value="Outros Gastos">Outros Gastos</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valor (R$)</label>
-                        <input type="number" class="form-control" name="amount" id="edit-amount"
-                               step="0.01" min="0.01" required>
+                        <input type="number" class="form-control" id="edit-valor" step="0.01" min="0.01">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
-                        <input type="text" class="form-control" name="description" id="edit-description">
+                        <input type="text" class="form-control" id="edit-descricao">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+                <button type="button" class="btn btn-primary">Salvar</button>
             </div>
         </div>
     </div>
@@ -162,28 +139,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-// Configurar formulário de transações
-document.addEventListener('DOMContentLoaded', function() {
-    const transactionForm = document.getElementById('transaction-form');
-    if (transactionForm) {
-        transactionForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
+<!-- Importa o app.js -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 
-            const formData = new FormData(this);
-            const transacao = {
-                tipo: formData.get('type'),
-                categoria: formData.get('category'),
-                valor: parseFloat(formData.get('amount')),
-                descricao: formData.get('description')
-            };
-
-            await adicionarTransacao(transacao, this);
-        });
-    }
-
-    // Carregar transações ao abrir a página
-    carregarTransacoesPagina();
-});
-</script>
 {% endblock %}

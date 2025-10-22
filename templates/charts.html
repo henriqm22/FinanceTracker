@@ -1,43 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Gráficos - FinanceTracker{% endblock %}
+{% block title %}Gráficos - OrçaFácil{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Análise Gráfica</h4>
+<div class="container">
+    <h1 class="text-center mb-4">📊 OrçaFácil - Gráficos</h1>
+
+    <div class="row">
+        <!-- Pizza -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Receitas vs Despesas</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="pieChart"></canvas>
+                </div>
             </div>
-            <div class="card-body">
-                <!-- Gráfico de Pizza -->
-                <div class="row mb-5">
-                    <div class="col-12">
-                        <h5 class="mb-3">📊 Distribuição: Receitas vs Despesas</h5>
-                        <div class="chart-container">
-                            <canvas id="pieChart" height="200"></canvas>
-                        </div>
-                    </div>
-                </div>
+        </div>
 
-                <!-- Gráfico de Barras -->
-                <div class="row mb-5">
-                    <div class="col-12">
-                        <h5 class="mb-3">📈 Despesas por Categoria</h5>
-                        <div class="chart-container">
-                            <canvas id="barChart" height="200"></canvas>
-                        </div>
-                    </div>
+        <!-- Barras -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Despesas por Categoria</h5>
                 </div>
+                <div class="card-body">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
 
-                <!-- Gráfico de Linhas -->
-                <div class="row">
-                    <div class="col-12">
-                        <h5 class="mb-3">📉 Evolução Mensal</h5>
-                        <div class="chart-container">
-                            <canvas id="lineChart" height="200"></canvas>
-                        </div>
-                    </div>
+        <!-- Linhas -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Evolução Mensal</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="lineChart"></canvas>
                 </div>
             </div>
         </div>
@@ -46,214 +47,103 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Cores para os gráficos
-const colors = {
-    receita: '#27ae60',
-    despesa: '#e74c3c',
-    categories: ['#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#34495e', '#d35400', '#c0392b', '#16a085', '#8e44ad']
-};
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log("📈 Carregando gráficos...");
 
-// Carregar dados dos gráficos
-async function loadChartsData() {
     try {
-        const response = await fetch('/api/charts/data');
-        const data = await response.json();
-        
-        createPieChart(data.pie);
-        createBarChart(data.bar);
-        createLineChart(data.line);
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados dos gráficos:', error);
-        mostrarNotificacao('Erro ao carregar gráficos: ' + error.message, 'danger');
-    }
-}
+        const res = await fetch("/api/charts/data");
+        const data = await res.json();
 
-// Gráfico de Pizza - Receitas vs Despesas
-function createPieChart(pieData) {
-    const ctx = document.getElementById('pieChart').getContext('2d');
-
-    const receita = pieData.find(item => item.type === 'Receita')?.total || 0;
-    const despesa = pieData.find(item => item.type === 'Despesa')?.total || 0;
-
-    if (receita === 0 && despesa === 0) {
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#666';
-        ctx.textAlign = 'center';
-        ctx.fillText('Não há dados para exibir', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        return;
-    }
-
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Receitas', 'Despesas'],
-            datasets: [{
-                data: [receita, despesa],
-                backgroundColor: [colors.receita, colors.despesa],
-                borderWidth: 2,
-                borderColor: '#1a1a1a'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: 'white', font: { size: 14 } }
+        // --- Gráfico Pizza ---
+        const pieCtx = document.getElementById("pieChart");
+        if (data.pie && data.pie.length) {
+            new Chart(pieCtx, {
+                type: "doughnut",
+                data: {
+                    labels: data.pie.map(p => p.type),
+                    datasets: [{
+                        data: data.pie.map(p => p.total),
+                        backgroundColor: ["#28a745", "#dc3545"]
+                    }]
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.parsed;
-                            const total = receita + despesa;
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `R$ ${value.toFixed(2)} (${percentage}%)`;
-                        }
+                options: {
+                    plugins: {
+                        legend: { position: "bottom" }
                     }
                 }
-            }
+            });
+        } else {
+            pieCtx.parentElement.innerHTML = "<p class='text-muted text-center'>Sem dados suficientes</p>";
         }
-    });
-}
 
-// Gráfico de Barras - Despesas por Categoria
-function createBarChart(barData) {
-    const ctx = document.getElementById('barChart').getContext('2d');
-
-    if (barData.length === 0) {
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#666';
-        ctx.textAlign = 'center';
-        ctx.fillText('Não há despesas para exibir', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        return;
-    }
-
-    const categories = barData.map(item => item.category);
-    const totals = barData.map(item => item.total);
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: categories,
-            datasets: [{
-                label: 'Valor (R$)',
-                data: totals,
-                backgroundColor: categories.map((_, index) => colors.categories[index % colors.categories.length]),
-                borderColor: '#1a1a1a',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `R$ ${context.parsed.y.toFixed(2)}`;
-                        }
+        // --- Gráfico Barras ---
+        const barCtx = document.getElementById("barChart");
+        if (data.bar && data.bar.length) {
+            new Chart(barCtx, {
+                type: "bar",
+                data: {
+                    labels: data.bar.map(b => b.category),
+                    datasets: [{
+                        label: "Total (R$)",
+                        data: data.bar.map(b => b.total),
+                        backgroundColor: "#17a2b8"
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'white',
-                        callback: function(value) {
-                            return 'R$ ' + value.toFixed(2);
+            });
+        } else {
+            barCtx.parentElement.innerHTML = "<p class='text-muted text-center'>Sem despesas registradas</p>";
+        }
+
+        // --- Gráfico Linhas ---
+        const lineCtx = document.getElementById("lineChart");
+        if (data.line && data.line.length) {
+            new Chart(lineCtx, {
+                type: "line",
+                data: {
+                    labels: data.line.map(l => l.month),
+                    datasets: [
+                        {
+                            label: "Receitas",
+                            data: data.line.map(l => l.revenue),
+                            borderColor: "#28a745",
+                            fill: false,
+                            tension: 0.3
+                        },
+                        {
+                            label: "Despesas",
+                            data: data.line.map(l => l.expense),
+                            borderColor: "#dc3545",
+                            fill: false,
+                            tension: 0.3
                         }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
                     },
-                    grid: { color: '#444' }
-                },
-                x: {
-                    ticks: { color: 'white' },
-                    grid: { color: '#444' }
-                }
-            }
-        }
-    });
-}
-
-// Gráfico de Linhas - Evolução Mensal
-function createLineChart(lineData) {
-    const ctx = document.getElementById('lineChart').getContext('2d');
-
-    if (lineData.length === 0) {
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#666';
-        ctx.textAlign = 'center';
-        ctx.fillText('Não há dados suficientes para evolução mensal', ctx.canvas.width / 2, ctx.canvas.height / 2);
-        return;
-    }
-
-    const months = lineData.map(item => {
-        const [year, month] = item.month.split('-');
-        return `${month}/${year}`;
-    });
-    const revenues = lineData.map(item => item.revenue || 0);
-    const expenses = lineData.map(item => item.expense || 0);
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: months,
-            datasets: [
-                {
-                    label: 'Receitas',
-                    data: revenues,
-                    borderColor: colors.receita,
-                    backgroundColor: colors.receita + '20',
-                    tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'Despesas',
-                    data: expenses,
-                    borderColor: colors.despesa,
-                    backgroundColor: colors.despesa + '20',
-                    tension: 0.3,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    labels: { color: 'white', font: { size: 14 } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: R$ ${context.parsed.y.toFixed(2)}`;
-                        }
+                    plugins: {
+                        legend: { position: "bottom" }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'white',
-                        callback: function(value) {
-                            return 'R$ ' + value.toFixed(2);
-                        }
-                    },
-                    grid: { color: '#444' }
-                },
-                x: {
-                    ticks: { color: 'white' },
-                    grid: { color: '#444' }
-                }
-            }
+            });
+        } else {
+            lineCtx.parentElement.innerHTML = "<p class='text-muted text-center'>Sem dados mensais</p>";
         }
-    });
-}
 
-// Inicializar gráficos quando a página carregar
-document.addEventListener('DOMContentLoaded', loadChartsData);
+        console.log("✅ Gráficos carregados!");
+    } catch (err) {
+        console.error("Erro ao carregar gráficos:", err);
+        document.querySelector(".container").insertAdjacentHTML("beforeend",
+            "<div class='alert alert-danger mt-3'>Erro ao carregar dados dos gráficos.</div>");
+    }
+});
 </script>
 {% endblock %}
